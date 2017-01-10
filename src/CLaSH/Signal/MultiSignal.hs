@@ -140,7 +140,7 @@ mooreP fs fo s i = fmap fo r where
 
 windowP  x = iterateI (prepend def) x
 
--- Prepenadable
+-- Prependable
 
 -- |
 -- class that can be prepended
