@@ -153,7 +153,7 @@ class Prependable f where
    prepend :: a -> f a -> f a
 
 instance Prependable ZipList where
-   prepend x xs = ZipList ( getZipList xs)
+   prepend x xs = ZipList (x : getZipList xs)
 
 instance (KnownNat n, n ~ (m+1)) => Prependable (MultiSignal n) where
     prepend x (MultiSignal s) = 
