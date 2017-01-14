@@ -4,12 +4,15 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ConstraintKinds #-}
+
 
 module CLaSH.Signal.MultiSignal (
     MultiSignal (..) ,
     -- * Prependable
     Prependable(..) ,
-    -- * Utility functons
+    -- * Utility functions
+    SignalLike(..),
     mealyP ,
     mooreP ,
     windowP 
@@ -22,6 +25,7 @@ import CLaSH.Signal.Explicit as SE
 import Test.QuickCheck (Arbitrary(..),CoArbitrary(..))
 
 
+-- Stream of elements where n elements arrives at same clock
 data MultiSignal n a = MultiSignal {unMultiSignal :: Signal (Vec n a) } 
 
 
@@ -127,17 +131,37 @@ instance (ExtendingNum a b,KnownNat n, n ~ (m+1)) => ExtendingNum (MultiSignal n
   type MResult (MultiSignal n  a) (MultiSignal n b) = MultiSignal n (MResult a b)
   times = liftA2 times
 
+-- | Constraints synonym
+type SignalLike f = (Prependable f, Applicative f) 
 
-
-mealyP :: (Prependable f, Applicative f) => (a1 -> a -> (a1, b)) -> a1 -> f a -> f b
+mealyP :: (SignalLike f) 
+       => (s -> i -> (s,o)) -- ^ Transfer function in mealy machine form:
+                           -- @state -> input -> (newstate,output)@
+      -> s                 -- ^ Initial state
+      -> (f i -> f o)
+      -- ^ Synchronous sequential function with input and output matching that
+      -- of the mealy machine
 mealyP f d i = o where
    r = f <$> prepend d s <*> i
    s = fst <$> r
    o = snd <$> r
 
+
+mooreP :: (SignalLike f) 
+       => (s -> i -> s) -- ^ Transfer function in moore machine form:
+                       -- @state -> input -> newstate@
+      -> (s -> o)      -- ^ Output function in moore machine form:
+                       -- @state -> output@
+      -> s             -- ^ Initial state
+      -> (f i -> f o)  -- ^ Synchronous sequential function with input and output matching that
+                       -- of the moore machine
 mooreP fs fo s i = fmap fo r where
      r = fs <$> prepend s r <*> i 
 
+
+windowP :: (KnownNat n, Default a, SignalLike f)
+       => f a               -- ^ 'SignalLike' to create a window over
+       -> Vec n (f a)       -- ^ Vector of signals
 windowP  x = iterateI (prepend def) x
 
 -- Prependable
@@ -147,7 +171,7 @@ windowP  x = iterateI (prepend def) x
 --
 -- [/rule/]
 --
---      @ toList (prep a ax) == a : toList ax @
+--      @ toList ('prepend' a ax) == a : toList ax @
 --
 class Prependable f where
    prepend :: a -> f a -> f a
