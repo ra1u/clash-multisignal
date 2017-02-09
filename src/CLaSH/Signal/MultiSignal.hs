@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ConstraintKinds #-}
-
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 module CLaSH.Signal.MultiSignal (
     MultiSignal (..) ,
@@ -15,14 +15,19 @@ module CLaSH.Signal.MultiSignal (
     SignalLike(..),
     mealyP ,
     mooreP ,
-    windowP 
+    windowP,
+    -- * Simulation functions (not synthesisable)
+    fromListP,
+    fromListPI,
+    simulateP
 ) where
 
 import qualified Data.Foldable as F
-import qualified Prelude 
-import CLaSH.Prelude as P
+import qualified Prelude as P
+import CLaSH.Prelude as CP
 import CLaSH.Signal.Explicit as SE
 import Test.QuickCheck (Arbitrary(..),CoArbitrary(..))
+import Control.DeepSeq
 
 
 -- Stream of elements where n elements arrives at same clock
@@ -42,7 +47,7 @@ instance KnownNat n => Applicative (MultiSignal n) where
 
 instance Foldable (MultiSignal n) where
     foldr f x xs = (F.foldr (.) id xs') x where 
-        xs' = (\ys y -> P.foldr f y ys) <$> unMultiSignal xs       
+        xs' = (\ys y -> CP.foldr f y ys) <$> unMultiSignal xs       
 
 
 instance (KnownNat m, m ~ (n+1)) => Traversable (MultiSignal m) where
@@ -164,6 +169,36 @@ windowP :: (KnownNat n, Default a, SignalLike f)
        -> Vec n (f a)       -- ^ Vector of signals
 windowP  x = iterateI (prepend def) x
 
+
+-- | convert list to  'MultiSignal'
+fromListP :: (NFData a) => SNat (n + 1) -> [a] -> MultiSignal (n + 1) a
+fromListP n xs = MultiSignal $ CP.fromList $ l2vl n xs where
+   l2vl n xs = v :  l2vl n ys where
+      v = P.head <$> r
+      ys = P.tail (CP.last r) 
+      r = CP.iterate n P.tail xs
+      vList = v : l2vl n ys 
+
+
+-- | convert list to  'MultiSignal'
+fromListPI :: (NFData a,KnownNat n) 
+           => [a] -> MultiSignal (n + 1) a
+fromListPI = withSNat fromListP
+
+
+-- | Simulate a (@'MultiSignal' (n + 1) a -> 'MultiSignal' (n + 1) b@) 
+-- function given a list of samples of type a
+simulateP :: (NFData a, NFData b, KnownNat n) 
+          => (MultiSignal (n + 1) a -> MultiSignal (n + 1) b )
+          -> [a] 
+          -> [b]
+simulateP f xs = P.concat 
+                 $ fmap toList 
+                 $ sample 
+                 $ unMultiSignal 
+                 $ f 
+                 $ fromListPI xs
+
 -- Prependable
 
 -- |
@@ -184,4 +219,4 @@ instance (KnownNat n, n ~ (m+1)) => Prependable (MultiSignal n) where
          MultiSignal $ liftA2 (+>>) (register x (fmap last s)) s
 
 instance Prependable (Signal' SE.SystemClock) where
-   prepend = P.register
+   prepend = CP.register
