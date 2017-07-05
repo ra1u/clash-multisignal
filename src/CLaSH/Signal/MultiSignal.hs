@@ -79,8 +79,8 @@ instance (Fractional a,KnownNat n) => Fractional (MultiSignal n a) where
   fromRational = pure . fromRational
 
 
--- instance (Show a,KnownNat n) => Show (MultiSignal n a) where
---  show x = foldMap ( \a -> mappend (show a) " ") x
+instance (Show a,KnownNat n) => Show (MultiSignal n a) where
+  show = show . unMultiSignal
 
 
 instance (Arbitrary a,KnownNat n) => Arbitrary (MultiSignal n a) where
