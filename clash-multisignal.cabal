@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                clash-multisignal
-version:             0.1.0.0
+version:             0.2.0.0
 -- synopsis:            
 description:         Clash/Fpga library for working with multiple elements arriving at same clock as stream.
 license:             BSD3
