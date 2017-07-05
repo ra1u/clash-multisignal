@@ -45,9 +45,9 @@ instance KnownNat n => Applicative (MultiSignal n) where
       su = unMultiSignal s
 
 
-instance Foldable (MultiSignal n) where
+instance (KnownNat n) =>  Foldable (MultiSignal n) where
     foldr f x xs = (F.foldr (.) id xs') x where 
-        xs' = (\ys y -> CP.foldr f y ys) <$> unMultiSignal xs       
+        xs' = (\ys y -> CP.foldr f y ys) <$> unMultiSignal xs      
 
 
 instance (KnownNat m, m ~ (n+1)) => Traversable (MultiSignal m) where
@@ -79,8 +79,8 @@ instance (Fractional a,KnownNat n) => Fractional (MultiSignal n a) where
   fromRational = pure . fromRational
 
 
-instance Show a => Show (MultiSignal n a) where
-  show x = foldMap ( \a -> mappend (show a) " ") x
+-- instance (Show a,KnownNat n) => Show (MultiSignal n a) where
+--  show x = foldMap ( \a -> mappend (show a) " ") x
 
 
 instance (Arbitrary a,KnownNat n) => Arbitrary (MultiSignal n a) where
@@ -164,7 +164,7 @@ mooreP fs fo s i = fmap fo r where
      r = fs <$> prepend s r <*> i 
 
 
-windowP :: (KnownNat n, Default a, SignalLike f)
+windowP :: (KnownNat n, Default a, Prependable f)
        => f a               -- ^ 'SignalLike' to create a window over
        -> Vec n (f a)       -- ^ Vector of signals
 windowP  x = iterateI (prepend def) x
