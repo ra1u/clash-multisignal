@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                clash-multisignal
-version:             0.2.0.0
+version:             0.9.0.0
 -- synopsis:            
 description:         Clash/Fpga library for working with multiple elements arriving at same clock as stream.
 license:             BSD3
@@ -17,20 +17,21 @@ cabal-version:       >=1.10
 homepage:            https://github.com/ra1u/clash-multisignal
 
 library
-  exposed-modules:  CLaSH.Signal.MultiSignal
+  exposed-modules:  Clash.Signal.MultiSignal
   -- other-modules:       
   -- other-extensions:   
  
   -- we use Functor and Applicative from base 
-  build-depends:       base > 4.0 && < 5.0, 
-                       clash-prelude >= 0.10 && < 0.12 ,
+  build-depends:       base >= 4.8.0.0 && < 5, 
+                       clash-prelude >= 0.99 && < 1.0 ,
                        QuickCheck,
                        deepseq,
-                       ghc-typelits-knownnat
+                       ghc-typelits-knownnat,
+                       ghc-typelits-natnormalise
 
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options: -fexpose-all-unfoldings
+  ghc-options: -fexpose-all-unfoldings  -fno-worker-wrapper
 
 
 source-repository head
